@@ -1,5 +1,5 @@
 # gui/interface.py
-
+# ok 
 import tkinter as tk
 from tkinter import ttk, messagebox
 from src.cbr import BaseDeCasos, Caso

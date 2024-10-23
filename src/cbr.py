@@ -1,5 +1,5 @@
 # src/cbr.py
-
+# ok
 import math
 from src.utils import normalize_data  # Importando a função de normalização
 

@@ -80,3 +80,5 @@ def zscore_normalize(dataframe, entrada):
             normalized_val = 0.0  # Evita divisão por zero se o desvio padrão for zero
         normalized[attr] = normalized_val
     return normalized
+
+#ok

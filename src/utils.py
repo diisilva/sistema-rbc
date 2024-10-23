@@ -55,10 +55,24 @@ def normalize_data(dataframe, entrada):
     for attr, val in entrada.items():
         min_val = dataframe[attr].min()
         max_val = dataframe[attr].max()
+        
+        # Debugging to verify values
+        #print(f"Atributo: {attr}, Valor de entrada: {val}, Min: {min_val}, Max: {max_val}")
+        
         if max_val - min_val != 0:
+
             normalized_val = (val - min_val) / (max_val - min_val)
+            # Check if the normalized value is outside the [0, 1] range
+            if normalized_val < 0 or normalized_val > 1:
+
+                # Limitar os valores para o intervalo [0, 1] para evitar resultados inesperados
+                print(f"Valor  fora do intervalo [0, 1]: {attr} = {normalized_val}")
+                normalized_val = max(0, min(normalized_val, 1))
+                print(f"Valor normalizado fora do intervalo [0, 1]: {attr} = {normalized_val}")
+
         else:
             normalized_val = 0.0  # Evita divisão por zero se todos os valores forem iguais
+            
         normalized[attr] = normalized_val
     return normalized
 

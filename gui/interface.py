@@ -9,7 +9,7 @@ class CBRApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Sistema RBC - Diagnóstico de Câncer de Mama")
-        self.root.geometry("1400x800")  # Aumentar o tamanho da janela para acomodar mais elementos
+        self.root.geometry("1200x600")  # Aumentar o tamanho da janela para acomodar mais elementos
 
         # Carregar dados usando ucimlrepo
         self.data = load_data()
@@ -176,7 +176,7 @@ class CBRApp:
 
         # Frame para resultados com scrollbar
         resultados_frame = ttk.Frame(frame)
-        resultados_frame.pack(fill='both', expand=True, padx=10, pady=10)
+        resultados_frame.pack(fill='both', expand=True, padx=10, pady=1)
 
         # Canvas para permitir rolagem
         canvas = tk.Canvas(resultados_frame)
@@ -228,8 +228,9 @@ class CBRApp:
     def atualizar_normalizacao(self):
         """
         Atualiza a base de casos aplicando ou removendo a normalização conforme a checkbox.
+        Isso não deve limpar os dados, apenas aplicar a normalização para os cálculos.
         """
-        # Recarregar a base de casos com ou sem normalização
+        normalizar = self.normalizar_var.get()
         atributos_relevantes = [
             'Radius_mean', 'Texture_mean', 'Perimeter_mean',
             'Area_mean', 'Smoothness_mean', 'Compactness_mean', 'Concavity_mean',
@@ -241,34 +242,33 @@ class CBRApp:
             'Compactness_worst', 'Concavity_worst', 'Concave_points_worst',
             'Symmetry_worst', 'Fractal_dimension_worst',
         ]
-        normalizar = self.normalizar_var.get()
-        self.base_de_casos = BaseDeCasos(self.data.copy(), atributos_relevantes, normalizar=normalizar)  # Passar uma cópia
-
-        # Recalcular as medianas e médias com base nos dados normalizados ou não
-        self.calcular_valores_referencia()
-
-        # Resetar as entradas para os valores medianos ou médios apropriados
-        self.limpar()
+        
+        # Atualizar a base de casos, mas não limpar os valores atuais nos campos
+        self.base_de_casos = BaseDeCasos(self.data.copy(), atributos_relevantes, normalizar=normalizar)
 
     def buscar(self):
-        # Obter caso de entrada
+        """
+        Mantém os dados nos atributos e faz os cálculos de similaridade
+        com base na normalização, se necessário.
+        Também trata a entrada com ponto ou vírgula como separador decimal.
+        """
         atributos_entrada = {}
         try:
             for attr, entry in self.entries.items():
-                val = float(entry.get())
+                val_str = entry.get().replace(',', '.')  # Substituir vírgula por ponto
+                val = float(val_str)
                 atributos_entrada[attr] = val
         except ValueError:
-            messagebox.showerror("Erro de Entrada", "Por favor, insira valores numéricos válidos.")
+            messagebox.showerror("Erro de Entrada", "Por favor, insira valores numéricos válidos (use ponto ou vírgula para separador decimal).")
             return
 
-        # Verificar se a normalização está ativada
+        # Verificar se a normalização está ativada e aplicar o cálculo corretamente
         if self.normalizar_var.get():
             # Normalizar os dados de entrada usando Min-Max Scaling
             atributos_normalizados = normalize_data(self.data, atributos_entrada)
-            
             caso_entrada = Caso("Entrada", "?", atributos_normalizados)
         else:
-            # Não normalizar
+            # Não normalizar, usar os valores brutos
             caso_entrada = Caso("Entrada", "?", atributos_entrada)
 
         # Obter pesos
@@ -279,52 +279,36 @@ class CBRApp:
         # Recuperar casos similares
         similaridades = self.base_de_casos.recuperar_casos_similares(caso_entrada, pesos)
 
-        # Exibir resultados
+        # Exibir resultados (sem resetar os campos de entrada)
         self.result_text.delete(1.0, tk.END)
         self.result_text.insert(tk.END, "Caso de Entrada (Valores Normalizados):\n" if self.normalizar_var.get() else "Caso de Entrada:\n")
         for attr, val in (atributos_normalizados.items() if self.normalizar_var.get() else atributos_entrada.items()):
             self.result_text.insert(tk.END, f"  {attr}: {val:.2f}\n")
         self.result_text.insert(tk.END, "\nCasos da Base Ordenados por Similaridade:\n\n")
 
-        # Cabeçalho dos resultados
+        # Exibir lista de casos similares com Similaridade, Similarity Score, e Distance Metrics
         cabecalho = f"{'ID':<5} {'Diagnosis':<10} {'Similaridade (%)':<20} {'Similarity Score':<20} {'Distance Metrics':<25}\n"
         self.result_text.insert(tk.END, cabecalho)
         self.result_text.insert(tk.END, "-"*80 + "\n")
-
-        # Iterar sobre todos os casos similares
         for i, (caso, sim) in enumerate(similaridades, 1):
-            if i <= 10:
-                # Similarity Score é o valor de similaridade
-                similarity_score = sim  # Similaridade já está calculada
+            similarity_score = sim  # Similaridade já calculada
+            distance_metrics = self.base_de_casos.calcular_distancia(caso_entrada, caso, pesos)  # Calcular a distância
 
-                # Calcular métricas de distância
-                distance_metrics = self.base_de_casos.calcular_distancia(caso_entrada, caso, pesos)
+            linha = f"{caso.id:<5} {caso.diagnosis:<10} {sim*100:<20.2f} {similarity_score:<20.4f} {distance_metrics:<25.4f}\n"
+            self.result_text.insert(tk.END, linha)
 
-                # Formatação com largura fixa
-                linha = f"{caso.id:<5} {caso.diagnosis:<10} {sim*100:<20.2f} {similarity_score:<20.4f} {distance_metrics:<25.4f}\n"
-                self.result_text.insert(tk.END, linha)
-            else:
-                # Exibir apenas ID, Diagnosis e Similaridade (%)
-                linha = f"{caso.id:<5} {caso.diagnosis:<10} {sim*100:<20.2f}\n"
-                self.result_text.insert(tk.END, linha)
-
-        self.result_text.insert(tk.END, "\n")
 
     def limpar(self):
-        # Limpar resultados
+        """
+        Limpa os resultados e reseta os valores dos campos de entrada,
+        aplicando as medianas apenas quando o usuário clicar em 'Limpar'.
+        """
         self.result_text.delete(1.0, tk.END)
-        # Resetar entradas para valores medianos ou médios apropriados
         for attr, entry in self.entries.items():
-            if self.normalizar_var.get():
-                # Se normalizado, use as medianas e médias normalizadas
-                # Assumindo que os dados já estão normalizados na base
-                entry.delete(0, tk.END)
-                entry.insert(0, f"{self.valores_medianos_m.get(attr, 0):.2f}")
-            else:
-                # Se não normalizado, use os valores brutos
-                entry.delete(0, tk.END)
-                entry.insert(0, f"{self.valores_medianos_m.get(attr, 0):.2f}")
+            entry.delete(0, tk.END)
+            entry.insert(0, f"{self.valores_medianos_m.get(attr, 0):.2f}")
         messagebox.showinfo("Limpar", "Resultados e entradas foram limpos.")
+
 
     def sobre(self):
         # Criar uma nova janela

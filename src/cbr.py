@@ -1,6 +1,7 @@
 # src/cbr.py
-# ok
+
 import math
+import pandas as pd
 from src.utils import normalize_data  # Importando a função de normalização
 
 class Caso:
@@ -19,7 +20,6 @@ class BaseDeCasos:
         :param normalizar: Booleano indicando se a base deve ser normalizada.
         """
         if normalizar:
-            dataframe = dataframe.copy()  # Cria uma cópia para evitar modificar o original
             # Normalizar a base de dados usando Min-Max Scaling
             for attr in atributos_relevantes:
                 min_val = dataframe[attr].min()

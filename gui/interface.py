@@ -1,5 +1,5 @@
 # gui/interface.py
-# ok 
+
 import tkinter as tk
 from tkinter import ttk, messagebox
 from src.cbr import BaseDeCasos, Caso
@@ -24,7 +24,7 @@ class CBRApp:
             'Compactness_worst', 'Concavity_worst', 'Concave_points_worst',
             'Symmetry_worst', 'Fractal_dimension_worst',
         ]
-        self.base_de_casos = BaseDeCasos(self.data.copy(), atributos_relevantes, normalizar=False)  # Passar uma cópia
+        self.base_de_casos = BaseDeCasos(self.data, atributos_relevantes, normalizar=False)
 
         # Definir pesos iniciais
         self.pesos = {attr:1 for attr in atributos_relevantes}
@@ -242,7 +242,7 @@ class CBRApp:
             'Symmetry_worst', 'Fractal_dimension_worst',
         ]
         normalizar = self.normalizar_var.get()
-        self.base_de_casos = BaseDeCasos(self.data.copy(), atributos_relevantes, normalizar=normalizar)  # Passar uma cópia
+        self.base_de_casos = BaseDeCasos(self.data, atributos_relevantes, normalizar=normalizar)
 
         # Recalcular as medianas e médias com base nos dados normalizados ou não
         self.calcular_valores_referencia()
@@ -378,3 +378,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+#ok
